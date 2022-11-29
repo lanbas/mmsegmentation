@@ -1,7 +1,7 @@
 """Base config file for BDD100KSemSegDataset."""
 
 dataset_type = "BDD100KSemSegDataset"  # pylint: disable=invalid-name
-data_root = "../data/bdd100k/"  # pylint: disable=invalid-name
+data_root = "/content/mmsegmentation/data/bdd100k/"  # pylint: disable=invalid-name
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True
 )
