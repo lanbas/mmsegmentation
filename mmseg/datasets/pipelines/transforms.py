@@ -1,6 +1,8 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import copy
 
+import cv2
+import math
 import mmcv
 import numpy as np
 from mmcv.utils import deprecated_api_warning, is_tuple_of
@@ -370,6 +372,100 @@ class RandomFlip(object):
                 # use copy() to make numpy stride positive
                 results[key] = mmcv.imflip(
                     results[key], direction=results['flip_direction']).copy()
+        return results
+
+    def __repr__(self):
+        return self.__class__.__name__ + f'(prob={self.prob})'
+
+
+@PIPELINES.register_module()
+class AddRain(object):
+    """Adds rain drop distortions to the image.
+    """
+
+    def __init__(self, prob=None):
+        self.prob = prob
+        if prob is not None:
+            assert prob >= 0 and prob <= 1
+
+    """Adds droplet with center (centery, centerx) and radius (radiusy, radiusx)
+        """
+    def addDroplet(out_arr, in_arr, height, width, centery, centerx, radiusy, radiusx, dropped_pixels):
+        for j in range(radiusy*2):
+            for i in range(radiusx*2):
+                y = int(centery + j - radiusy)
+                x = int(centerx + i - radiusx)
+                if x >= 0 and x < width and y >= 0 and y < height:
+                    if (x - centerx)**2 / radiusx**2 + (y - centery)**2 / radiusy**2 < 1:
+                        rad = (x - centerx)**2 / radiusx**2 + (y - centery)**2 / radiusy**2
+
+                        if rad == 0:
+                            diffX = 0
+                            diffY = 0
+                        else:
+                            outRad = math.tan(math.pi * rad / 2)
+                            diffX = int((x - centerx)*outRad / rad)
+                            diffY = int((y - centery)*outRad / rad)
+
+                        outX = centerx - diffX
+                        outY = centery - diffY
+
+                        outX = min(outX, width-1)
+                        outX = max(outX, 0)
+
+                        outY = min(outY, height-1)
+                        outY = max(outY, 0)
+                        
+                        for c in range(3):
+                            out_arr[y, x, c] = in_arr[outY, outX, c]
+                        dropped_pixels[y, x] = True
+
+    """Adds rain to image
+        """          
+    def add_rain(in_arr):
+        
+        height, width = in_arr.shape[:2]
+        out_arr = np.copy(in_arr)
+        
+        #stores whether a pixel has a droplet on it
+        dropped_pixels_arr = [[False for _ in range(width)] for _ in range(height)]
+        dropped_pixels = np.array(dropped_pixels_arr, dtype=bool)
+        
+        max_drop_size = 15.0
+        while max_drop_size > 10.0:
+            drop_width = int(max_drop_size)
+            drop_height = int(max_drop_size*1.2)
+            centerx = int(random.random()*width)
+            centery = int(random.random()*height)
+            radiusx = int(random.random()*drop_width/2) + drop_width
+            radiusy = int(random.random()*drop_height/2) + drop_height
+            #check that droplet won't overlap another
+            if not dropped_pixels[centery, centerx]:
+                addDroplet(out_arr, in_arr, height, width, centery, centerx, radiusy, radiusx, dropped_pixels)
+            max_drop_size = max_drop_size*0.995
+            
+        #blur droplets
+        blur_arr = cv2.GaussianBlur(out_arr, (11, 11), cv2.BORDER_CONSTANT)
+        return_arr = np.where(~np.expand_dims(dropped_pixels, 2), out_arr, blur_arr)
+            
+        return return_arr
+
+    def __call__(self, results):
+        """Call function to add rain drop distortions.
+
+        Args:
+            results (dict): Result dict from loading pipeline.
+
+        Returns:
+            dict: Augmented rainy results.
+        """
+
+        if 'add_rain' not in results:
+            add_rain = True if np.random.rand() < self.add_rain else False
+            results['add_rain'] = add_rain
+        if results['add_rain']:
+            # flip image
+            results['img'] = self.add_rain(results["img"])
         return results
 
     def __repr__(self):

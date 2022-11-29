@@ -10,7 +10,7 @@ from .transforms import (CLAHE, AdjustGamma, Normalize, Pad,
                          Resize, RGB2Gray, SegRescale)
 
 __all__ = [
-    'Compose', 'to_tensor', 'ToTensor', 'ImageToTensor', 'ToDataContainer',
+    'AddRain', 'Compose', 'to_tensor', 'ToTensor', 'ImageToTensor', 'ToDataContainer',
     'Transpose', 'Collect', 'LoadAnnotations', 'LoadImageFromFile',
     'MultiScaleFlipAug', 'Resize', 'RandomFlip', 'Pad', 'RandomCrop',
     'Normalize', 'SegRescale', 'PhotoMetricDistortion', 'RandomRotate',
