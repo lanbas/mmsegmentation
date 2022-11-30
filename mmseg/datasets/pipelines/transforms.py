@@ -390,7 +390,7 @@ class AddRain(object):
 
     """Adds droplet with center (centery, centerx) and radius (radiusy, radiusx)
         """
-    def addDroplet(out_arr, in_arr, height, width, centery, centerx, radiusy, radiusx, dropped_pixels):
+    def addDroplet(self, out_arr, in_arr, height, width, centery, centerx, radiusy, radiusx, dropped_pixels):
         for j in range(radiusy*2):
             for i in range(radiusx*2):
                 y = int(centery + j - radiusy)
@@ -422,7 +422,7 @@ class AddRain(object):
 
     """Adds rain to image
         """          
-    def add_rain(in_arr):
+    def add_rain(self, in_arr):
         
         height, width = in_arr.shape[:2]
         out_arr = np.copy(in_arr)
@@ -441,7 +441,7 @@ class AddRain(object):
             radiusy = int(random.random()*drop_height/2) + drop_height
             #check that droplet won't overlap another
             if not dropped_pixels[centery, centerx]:
-                addDroplet(out_arr, in_arr, height, width, centery, centerx, radiusy, radiusx, dropped_pixels)
+                self.addDroplet(out_arr, in_arr, height, width, centery, centerx, radiusy, radiusx, dropped_pixels)
             max_drop_size = max_drop_size*0.995
             
         #blur droplets
@@ -461,11 +461,15 @@ class AddRain(object):
         """
 
         if 'add_rain' not in results:
-            add_rain = True if np.random.rand() < self.add_rain else False
+            add_rain = True if np.random.rand() < self.prob else False
             results['add_rain'] = add_rain
         if results['add_rain']:
-            # flip image
+            # add rain
             results['img'] = self.add_rain(results["img"])
+            # cv2.imwrite(f"/content/mmsegmentation/debug/rainy_img{self.prob}.jpg", results['img'])
+        # else:
+        #     # cv2.imwrite(f"/content/mmsegmentation/debug/nonrainy_img{self.prob}.jpg", results['img'])
+
         return results
 
     def __repr__(self):
